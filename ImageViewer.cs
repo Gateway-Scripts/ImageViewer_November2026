@@ -29,7 +29,7 @@ namespace VMS.TPS
         {
             // TODO : Add here the code that is called when the script is launched from Eclipse.
             window.Title = "Primary Image Viewer";
-            window.Content = new ImageViewer.ImageView(context.Image);
+            window.Content = new ImageViewer.ImageView(context.StructureSet);
         }
     }
 }
