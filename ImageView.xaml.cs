@@ -33,33 +33,48 @@ namespace ImageViewer
             GenerateImage();
         }
 
-        private void GenerateImage()
+        private unsafe void GenerateImage()
         {
-            //BitmapSource bitmapSource = null;
-            int[,] pixels = new int[_image.YSize, _image.XSize];
+            int width = _image.XSize;
+            int height = _image.YSize;
+            int totalPixels = width * height;
+
+            // Get voxel data from ESAPI
+            int[,] pixels = new int[height, width];
             _image.GetVoxels(_sliceNumber, pixels);
-            int[] flat_pixels = new int[_image.YSize * _image.XSize];
-            //lay out pixels into single array
-            for (int i = 0; i < _image.YSize; i++)
+
+            // Find min/max using pointer arithmetic over the 2D array's contiguous memory
+            int drr_min = int.MaxValue;
+            int drr_max = int.MinValue;
+            fixed (int* pPixels = pixels)
             {
-                for (int ii = 0; ii < _image.XSize; ii++)
+                int* p = pPixels;
+                for (int i = 0; i < totalPixels; i++, p++)
                 {
-                    flat_pixels[i + _image.XSize * ii] = pixels[i, ii];
+                    if (*p < drr_min) drr_min = *p;
+                    if (*p > drr_max) drr_max = *p;
                 }
             }
-            //translate into byte array
-            var drr_max = flat_pixels.Max();
-            var drr_min = flat_pixels.Min();
-            PixelFormat format = PixelFormats.Gray8;//low res image, but only 1 byte per pixel. 
-            int stride = (_image.XSize * format.BitsPerPixel + 7) / 8;
-            byte[] image_bytes = new byte[stride * _image.YSize];
-            for (int i = 0; i < flat_pixels.Length; i++)
+
+            // Build the byte array using pointer arithmetic — no intermediate flat array needed
+            PixelFormat format = PixelFormats.Gray8;
+            int stride = (width * format.BitsPerPixel + 7) / 8;
+            byte[] image_bytes = new byte[stride * height];
+            double range = drr_max - drr_min;
+            fixed (int* pPixels = pixels)
+            fixed (byte* pBytes = image_bytes)
             {
-                double value = flat_pixels[i];
-                image_bytes[i] = Convert.ToByte(255 * ((value - drr_min) / (drr_max - drr_min)));
+                int* pSrc = pPixels;
+                byte* pDst = pBytes;
+                for (int i = 0; i < totalPixels; i++, pSrc++, pDst++)
+                {
+                    *pDst = (byte)(255 * (*pSrc - drr_min) / range);
+                }
             }
-            //build the bitmapsource.
-            TransverseImage.Source = BitmapSource.Create(_image.XSize, _image.YSize, 25.4 / _image.XRes, 25.4 / _image.YRes, format, null, image_bytes, stride);
+
+            // Build the BitmapSource and correct the 90-degree rotation
+            BitmapSource bitmapSource = BitmapSource.Create(width, height, 25.4 / _image.XRes, 25.4 / _image.YRes, format, null, image_bytes, stride);
+            TransverseImage.Source = new TransformedBitmap(bitmapSource, new RotateTransform(90));
         }
 
         private void PrevBtn_Click(object sender, RoutedEventArgs e)
