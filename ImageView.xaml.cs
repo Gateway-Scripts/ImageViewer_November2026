@@ -64,12 +64,23 @@ namespace ImageViewer
 
         private void PrevBtn_Click(object sender, RoutedEventArgs e)
         {
-
+            _sliceNumber--;
+            //what happens if the slice number is already 0? can't have -1
+            if (_sliceNumber < 0)
+            {
+                _sliceNumber = _image.ZSize - 1;
+            }
+            GenerateImage();
         }
 
         private void NextBtn_Click(object sender, RoutedEventArgs e)
         {
-
+            _sliceNumber++;
+            if(_sliceNumber>= _image.ZSize)
+            {
+                _sliceNumber = 0;
+            }
+            GenerateImage();
         }
     }
 }

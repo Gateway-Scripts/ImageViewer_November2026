@@ -2,7 +2,7 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="ImageViewer.csproj">
+  <Project Path="ImageViewer.csproj" Id="5dcbe13f-99d3-4adb-a7d7-e961ca704ef4">
     <Platform Project="x64" />
   </Project>
 </Solution>
